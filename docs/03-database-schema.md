@@ -643,7 +643,7 @@ CREATE TABLE roles (
     deleted_at TIMESTAMP WITH TIME ZONE,
     
     -- Constraints
-    CONSTRAINT uk_role_name_org UNIQUE (organization_id, name),
+    CONSTRAINT uk_role_name_org_scope UNIQUE (organization_id, name, scope_type, scope_id),
     CONSTRAINT chk_scope_consistency CHECK (
         (scope_type = 'organization' AND scope_id IS NULL) OR
         (scope_type = 'group' AND scope_id IS NOT NULL) OR
