@@ -561,13 +561,17 @@ class GroupContextValidator {
     user: User, 
     groupId: UUID
   ): Promise<GroupAccessValidation> {
-    // Check if user is owner of the group
-    if (user.id === await this.getGroupOwnerId(groupId)) {
+    // Check if user is owner of the group (supports multiple owners)
+    const userRoles = await this.getUserRolesInGroup(user.id, groupId);
+    const hasOwnerRole = userRoles.some(role => role.roleType === 'GROUP_OWNER');
+    
+    if (hasOwnerRole) {
       return { hasAccess: true, accessType: 'owner' };
     }
     
     // Check if user is manager of the group
-    if (await this.isUserManager(user.id, groupId)) {
+    const hasManagerRole = userRoles.some(role => role.roleType === 'GROUP_MANAGER');
+    if (hasManagerRole) {
       return { hasAccess: true, accessType: 'manager' };
     }
     
@@ -747,13 +751,17 @@ class PermissionEvaluator {
     user: User, 
     organizationUnitId: UUID
   ): Promise<OUAccessValidation> {
-    // Check if user is owner of the OU
-    if (user.id === await this.getOUOwnerId(organizationUnitId)) {
+    // Check if user is owner of the OU (supports multiple owners)
+    const userRoles = await this.getUserRolesInOU(user.id, organizationUnitId);
+    const hasOwnerRole = userRoles.some(role => role.roleType === 'OU_OWNER');
+    
+    if (hasOwnerRole) {
       return { hasAccess: true, accessType: 'owner' };
     }
     
     // Check if user is manager of the OU
-    if (await this.isUserManager(user.id, organizationUnitId)) {
+    const hasManagerRole = userRoles.some(role => role.roleType === 'OU_MANAGER');
+    if (hasManagerRole) {
       return { hasAccess: true, accessType: 'manager' };
     }
     
