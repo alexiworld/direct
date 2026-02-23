@@ -1,4 +1,4 @@
-# Scoped Roles Implementation - Detailed Design
+# Scoped Roles Implementation - Comprehensive Design
 
 **Document Version**: 1.0  
 **Created**: February 2026  
@@ -8,28 +8,84 @@
 ## Table of Contents
 
 1. [Scoped Roles Overview](#scoped-roles-overview)
-2. [The `groupId:roleId` Pattern](#the-groupidroleid-pattern)
-3. [Role Assignment with Context](#role-assignment-with-context)
-4. [Permission Evaluation with Scopes](#permission-evaluation-with-scopes)
-5. [Database Schema for Scoped Roles](#database-schema-for-scoped-roles)
-6. [API Implementation](#api-implementation)
-7. [Use Cases and Examples](#use-cases-and-examples)
+2. [Role Types and Scopes](#role-types-and-scopes)
+3. [Scoped Role Patterns](#scoped-role-patterns)
+4. [Role Assignment with Context](#role-assignment-with-context)
+5. [Permission Evaluation with Scopes](#permission-evaluation-with-scopes)
+6. [Group Scoped Roles](#group-scoped-roles)
+7. [Organization Unit Scoped Roles](#organization-unit-scoped-roles)
+8. [Database Schema for Scoped Roles](#database-schema-for-scoped-roles)
+9. [API Implementation](#api-implementation)
+10. [Use Cases and Examples](#use-cases-and-examples)
+11. [Security and Validation](#security-and-validation)
 
 ## Scoped Roles Overview
 
 Scoped roles provide context-aware permissions that are limited to specific organizational boundaries. The system supports three types of scoped roles:
 
-1. **Organization-Level**: Applies to the entire organization
-2. **Group-Scoped**: Limited to specific groups (`groupId:roleId` pattern)
+1. **Organization-Level**: Applies to the entire organization (unscoped)
+2. **Group-Scoped**: Limited to specific groups
 3. **Organization Unit-Scoped**: Limited to specific organization units
 
-## The `groupId:roleId` Pattern
+### Key Concepts
 
-### Concept Explanation
+- **Scope**: The boundary within which a role's permissions are valid
+- **Context**: The specific organizational context for permission evaluation
+- **Assignment**: The process of granting a role to a user with scope validation
+- **Evaluation**: The process of checking if a user has permissions within a specific scope
 
-The `groupId:roleId` pattern represents a role that has specific permissions but is scoped to operate only within the context of a particular group. This is different from assigning a role to a group - instead, it's about limiting the scope of a role's permissions.
+## Role Types and Scopes
 
-### Example Scenario
+### Scope Types
+
+```typescript
+enum ScopeType {
+  ORGANIZATION = 'organization',     // Organization-wide (unscoped)
+  GROUP = 'group',                   // Group-specific
+  ORGANIZATION_UNIT = 'organization_unit' // OU-specific
+}
+```
+
+### Role Hierarchy
+
+```typescript
+enum SystemRole {
+  SUPER_ADMIN = 'SUPER_ADMIN',       // All permissions, all scopes
+  ADMIN = 'ADMIN',                   // Organization-wide admin
+  OU_OWNER = 'OU_OWNER',             // Organization unit owner
+  OU_MANAGER = 'OU_MANAGER',         // Organization unit manager
+  OU_MEMBER = 'OU_MEMBER',           // Organization unit member
+  GROUP_OWNER = 'GROUP_OWNER',       // Group owner
+  GROUP_MANAGER = 'GROUP_MANAGER',   // Group manager
+  GROUP_MEMBER = 'GROUP_MEMBER'      // Group member
+}
+```
+
+### Role Structure
+
+```typescript
+interface Role {
+  id: UUID;
+  organizationId: UUID;
+  name: string;
+  description: string;
+  type: 'system' | 'custom';
+  scopeType: ScopeType;
+  scopeId: UUID | null; // null for organization-level roles
+  permissions: Permission[];
+  status: 'active' | 'inactive';
+  createdAt: Date;
+  updatedAt: Date;
+}
+```
+
+## Scoped Role Patterns
+
+### Group-Scoped Roles Pattern
+
+The group-scoped role pattern represents a role that has specific permissions but is scoped to operate only within the context of a particular group. This is different from assigning a role to a group - instead, it's about limiting the scope of a role's permissions.
+
+#### Example Scenario
 
 Consider a "View User Details" permission that should only work within specific groups:
 
@@ -52,14 +108,34 @@ const groupScopedRole = {
 };
 ```
 
-### Key Differences
+### Organization Unit-Scoped Roles Pattern
 
-| Aspect | Traditional Role | Scoped Role |
-|--------|------------------|-------------|
-| **Permission Scope** | Organization-wide | Group-specific |
-| **Assignment Target** | User directly | User with context |
-| **Permission Evaluation** | Always applies | Only within scope |
-| **Management** | Admin only | Group managers can assign |
+The organization unit-scoped role pattern represents a role that has specific permissions but is scoped to operate only within the context of a particular organization unit. This ensures that users can only perform actions within their designated organizational boundaries.
+
+#### Example Scenario
+
+Consider an HR manager role that should only work within a specific department:
+
+```typescript
+// Organization unit-scoped role
+const hrManagerRole = {
+  id: 'role-hr-manager',
+  name: 'HR Manager',
+  permissions: ['view_user_details', 'edit_user_details', 'manage_user_contracts'],
+  scopeType: 'organization_unit',
+  scopeId: 'ou-engineering-uuid' // Only works within engineering department
+};
+```
+
+### Key Differences Between Role Types
+
+| Aspect | Traditional Role | Group-Scoped Role | OU-Scoped Role |
+|--------|------------------|-------------------|----------------|
+| **Permission Scope** | Organization-wide | Group-specific | OU-specific |
+| **Assignment Target** | User directly | User with group context | User with OU context |
+| **Permission Evaluation** | Always applies | Only within group | Only within OU |
+| **Management** | Admin only | Group owners/managers | OU owners/managers |
+| **Access Control** | Organization boundaries | Group boundaries | Department boundaries |
 
 ## Role Assignment with Context
 
@@ -116,6 +192,10 @@ export class ScopedRoleAssignmentService {
       throw new ValidationError(`Group-scoped role must have a scopeId`);
     }
     
+    if (expectedScopeType === ScopeType.ORGANIZATION_UNIT && !role.scopeId) {
+      throw new ValidationError(`Organization unit-scoped role must have a scopeId`);
+    }
+    
     return role;
   }
   
@@ -150,6 +230,19 @@ export class ScopedRoleAssignmentService {
           groupMembership.roleInGroup !== 'manager') {
         throw new AuthorizationError(
           `User ${assignerId} must be group owner or manager to assign group-scoped roles`
+        );
+      }
+    }
+    
+    // For organization unit-scoped roles, check if assigner is OU owner/manager
+    if (role.scopeType === ScopeType.ORGANIZATION_UNIT) {
+      const ouAccess = await this.validateUserOUAccess(assignerId, role.scopeId);
+      
+      if (!ouAccess.hasAccess || 
+          ouAccess.accessType !== 'owner' && 
+          ouAccess.accessType !== 'manager') {
+        throw new AuthorizationError(
+          `User ${assignerId} must be OU owner or manager to assign OU-scoped roles`
         );
       }
     }
@@ -433,6 +526,379 @@ interface PermissionContext {
 }
 ```
 
+## Group Scoped Roles
+
+### Group Context Validation
+
+```typescript
+class GroupContextValidator {
+  async validateGroupScopedOperation(
+    userId: UUID,
+    groupId: UUID,
+    operation: string
+  ): Promise<ValidationResult> {
+    const user = await this.getUser(userId);
+    
+    // Check if user has admin privileges (can bypass group restrictions)
+    if (await this.hasAdminPrivileges(user)) {
+      return { isValid: true, reason: 'Admin override' };
+    }
+    
+    // Check ownership/management of group
+    const groupAccess = await this.validateUserGroupAccess(user, groupId);
+    if (!groupAccess.hasAccess) {
+      return { 
+        isValid: false, 
+        reason: `No access to group: ${groupId}` 
+      };
+    }
+    
+    // Check specific permission for the operation
+    return await this.validateGroupOperationPermission(user, groupId, operation);
+  }
+  
+  private async validateUserGroupAccess(
+    user: User, 
+    groupId: UUID
+  ): Promise<GroupAccessValidation> {
+    // Check if user is owner of the group
+    if (user.id === await this.getGroupOwnerId(groupId)) {
+      return { hasAccess: true, accessType: 'owner' };
+    }
+    
+    // Check if user is manager of the group
+    if (await this.isUserManager(user.id, groupId)) {
+      return { hasAccess: true, accessType: 'manager' };
+    }
+    
+    // Check if user is member of the group
+    const userGroups = await this.groupService.getUserGroups(user.id);
+    const isInGroup = userGroups.some(g => g.id === groupId);
+    
+    if (isInGroup) {
+      return { hasAccess: true, accessType: 'member' };
+    }
+    
+    return { hasAccess: false, accessType: 'none' };
+  }
+  
+  private async validateGroupOperationPermission(
+    user: User,
+    groupId: UUID,
+    operation: string
+  ): Promise<ValidationResult> {
+    // Check if user has the required permission for this operation
+    const hasPermission = await this.permissionService.hasPermission(
+      user.id, 
+      operation, 
+      {
+        scopeType: 'group',
+        scopeId: groupId,
+        userId: user.id
+      }
+    );
+    
+    if (!hasPermission) {
+      return { 
+        isValid: false, 
+        reason: `User does not have permission for operation: ${operation}` 
+      };
+    }
+    
+    return { isValid: true, reason: 'Valid group-scoped permission' };
+  }
+}
+```
+
+### Group Role Management
+
+```typescript
+class GroupRoleManager {
+  async createGroupScopedRole(
+    groupId: UUID,
+    roleDefinition: CreateGroupRoleDto,
+    createdBy: UUID
+  ): Promise<RoleDto> {
+    // Validate group exists and creator has authority
+    const group = await this.groupService.getGroup(groupId);
+    const creatorAccess = await this.validateUserGroupAccess(createdBy, groupId);
+    
+    if (!creatorAccess.hasAccess || 
+        creatorAccess.accessType !== 'owner' && 
+        creatorAccess.accessType !== 'manager') {
+      throw new AuthorizationError(
+        'Only group owners and managers can create group-scoped roles'
+      );
+    }
+    
+    // Create the group-scoped role
+    const role = new Role({
+      organizationId: group.organizationId,
+      name: roleDefinition.name,
+      description: roleDefinition.description,
+      type: 'custom',
+      scopeType: 'group',
+      scopeId: groupId,
+      permissions: roleDefinition.permissions,
+      status: 'active',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+    
+    await this.roleRepository.save(role);
+    
+    // Log the creation
+    await this.auditService.logGroupRoleCreation(createdBy, role);
+    
+    return this.mapToDto(role);
+  }
+  
+  async assignGroupScopedRole(
+    groupId: UUID,
+    userId: UUID,
+    roleId: UUID,
+    assignedBy: UUID
+  ): Promise<UserRoleDto> {
+    // Validate group membership
+    const userGroups = await this.groupService.getUserGroups(userId);
+    const isInGroup = userGroups.some(g => g.id === groupId);
+    
+    if (!isInGroup) {
+      throw new ValidationError(
+        `User ${userId} is not a member of group ${groupId}`
+      );
+    }
+    
+    // Validate role is group-scoped for this group
+    const role = await this.roleRepository.findById(roleId);
+    if (role.scopeType !== 'group' || role.scopeId !== groupId) {
+      throw new ValidationError(
+        `Role ${roleId} is not a group-scoped role for group ${groupId}`
+      );
+    }
+    
+    // Create user role assignment
+    const userRole = new UserRole({
+      userId: userId,
+      roleId: roleId,
+      assignedBy: assignedBy,
+      assignedAt: new Date(),
+      status: 'active',
+      scopeContext: {
+        scopeType: 'group',
+        scopeId: groupId
+      }
+    });
+    
+    await this.userRoleRepository.save(userRole);
+    
+    return this.mapToDto(userRole);
+  }
+}
+```
+
+## Organization Unit Scoped Roles
+
+### Enhanced PermissionEvaluator for OU Scopes
+
+```typescript
+// Enhanced PermissionEvaluator
+class PermissionEvaluator {
+  async evaluatePermission(
+    userId: UUID, 
+    permissionName: string, 
+    context?: PermissionContext
+  ): Promise<boolean> {
+    // Existing logic...
+    
+    // Enhanced OU scope validation
+    if (role.scopeType === ScopeType.ORGANIZATION_UNIT) {
+      return await this.validateOrganizationUnitScope(role, context, user);
+    }
+  }
+  
+  private async validateOrganizationUnitScope(
+    role: Role, 
+    context: PermissionContext,
+    user: User
+  ): Promise<boolean> {
+    if (!context.organizationUnitId) {
+      return false;
+    }
+    
+    // Check if the role's scope matches the context
+    if (role.scopeId !== context.organizationUnitId) {
+      return false;
+    }
+    
+    // Enhanced validation: Check user's relationship to the OU
+    const ouValidation = await this.validateUserOUAccess(user, context.organizationUnitId);
+    
+    if (!ouValidation.hasAccess) {
+      this.auditLogger.logScopeViolation(user.id, role.id, context);
+      return false;
+    }
+    
+    // Check specific permission requirements
+    return await this.validateOUPermissionRequirements(role, permissionName, context);
+  }
+  
+  private async validateUserOUAccess(
+    user: User, 
+    organizationUnitId: UUID
+  ): Promise<OUAccessValidation> {
+    // Check if user is owner of the OU
+    if (user.id === await this.getOUOwnerId(organizationUnitId)) {
+      return { hasAccess: true, accessType: 'owner' };
+    }
+    
+    // Check if user is manager of the OU
+    if (await this.isUserManager(user.id, organizationUnitId)) {
+      return { hasAccess: true, accessType: 'manager' };
+    }
+    
+    // Check if user belongs to the OU (for member operations)
+    if (user.organizationUnitId === organizationUnitId) {
+      return { hasAccess: true, accessType: 'member' };
+    }
+    
+    return { hasAccess: false, accessType: 'none' };
+  }
+}
+```
+
+### Organization Unit Context Validator
+
+```typescript
+// Enhanced service for OU context validation
+class OUContextValidator {
+  async validateOUCrossOperation(
+    userId: UUID,
+    sourceOUId: UUID,
+    targetOUId: UUID,
+    operation: string
+  ): Promise<ValidationResult> {
+    const user = await this.getUser(userId);
+    
+    // Check if user has admin privileges (can bypass OU restrictions)
+    if (await this.hasAdminPrivileges(user)) {
+      return { isValid: true, reason: 'Admin override' };
+    }
+    
+    // Check ownership/management of source OU
+    const sourceAccess = await this.validateUserOUAccess(user, sourceOUId);
+    if (!sourceAccess.hasAccess) {
+      return { 
+        isValid: false, 
+        reason: `No access to source OU: ${sourceOUId}` 
+      };
+    }
+    
+    // For cross-OU operations, check target OU access
+    if (sourceOUId !== targetOUId) {
+      const targetAccess = await this.validateUserOUAccess(user, targetOUId);
+      if (!targetAccess.hasAccess) {
+        return { 
+          isValid: false, 
+          reason: `No access to target OU: ${targetOUId}` 
+        };
+      }
+      
+      // Additional validation for cross-OU operations
+      return await this.validateCrossOUOperation(user, sourceOUId, targetOUId, operation);
+    }
+    
+    return { isValid: true, reason: 'Same OU operation allowed' };
+  }
+  
+  private async validateCrossOUOperation(
+    user: User,
+    sourceOUId: UUID,
+    targetOUId: UUID,
+    operation: string
+  ): Promise<ValidationResult> {
+    // Only admins can perform cross-OU operations
+    return { 
+      isValid: false, 
+      reason: 'Cross-OU operations require admin privileges' 
+    };
+  }
+}
+```
+
+### Enhanced Role Assignment Service for OU Scopes
+
+```typescript
+// Enhanced role assignment with OU scope validation
+class RoleAssignmentService {
+  async assignScopedRole(
+    userId: UUID,
+    roleId: UUID,
+    assignedBy: UUID,
+    context?: AssignmentContext
+  ): Promise<UserRole> {
+    // Existing validation...
+    
+    // Enhanced OU scope validation
+    if (role.scopeType === ScopeType.ORGANIZATION_UNIT) {
+      await this.validateOUScopedAssignment(user, role, assigner, context);
+    }
+    
+    // Create role assignment
+    return await this.createUserRoleAssignment(userId, roleId, assignedBy);
+  }
+  
+  private async validateOUScopedAssignment(
+    user: User,
+    role: Role,
+    assigner: User,
+    context?: AssignmentContext
+  ): Promise<void> {
+    // Check if assigner has appropriate OU access
+    const assignerAccess = await this.validateUserOUAccess(assigner, role.scopeId);
+    
+    if (!assignerAccess.hasAccess) {
+      throw new AuthorizationError(
+        `Assigner does not have access to organization unit: ${role.scopeId}`
+      );
+    }
+    
+    // Check if assigner has sufficient privileges within the OU
+    if (assignerAccess.accessType !== 'owner' && assignerAccess.accessType !== 'manager') {
+      throw new AuthorizationError(
+        'Only OU owners and managers can assign OU-scoped roles'
+      );
+    }
+    
+    // Check if user belongs to the OU (for non-admin assignments)
+    if (user.organizationUnitId !== role.scopeId) {
+      throw new ValidationError(
+        'User must belong to the organization unit to receive OU-scoped roles'
+      );
+    }
+    
+    // Validate role assignment within OU hierarchy
+    await this.validateOUHierarchyConstraints(user, role, assigner);
+  }
+  
+  private async validateOUHierarchyConstraints(
+    user: User,
+    role: Role,
+    assigner: User
+  ): Promise<void> {
+    // Prevent assignment of higher-level roles by lower-level users
+    const assignerRoleLevel = await this.getUserRoleLevel(assigner.id, role.scopeId);
+    const targetRoleLevel = await this.getRoleLevel(role.id);
+    
+    if (assignerRoleLevel < targetRoleLevel) {
+      throw new AuthorizationError(
+        'Cannot assign roles higher than assigner\'s level within the OU'
+      );
+    }
+  }
+}
+```
+
 ## Database Schema for Scoped Roles
 
 ### Enhanced User Role Table
@@ -503,6 +969,34 @@ CREATE INDEX idx_scoped_role_assignments_user_scope
 ON scoped_role_assignments(user_role_id, scope_type, scope_id);
 ```
 
+### Enhanced Database Constraints for OU Scopes
+
+```sql
+-- Enhanced organization units table with scope validation
+ALTER TABLE organization_units ADD COLUMN scope_validation_enabled BOOLEAN DEFAULT true;
+ALTER TABLE organization_units ADD COLUMN last_scope_validation TIMESTAMP;
+
+-- Enhanced audit logs for scoped operations
+CREATE TABLE ou_scoped_operations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id),
+    organization_unit_id UUID NOT NULL REFERENCES organization_units(id),
+    operation_type VARCHAR(50) NOT NULL,
+    target_resource_id UUID,
+    scope_validation_passed BOOLEAN NOT NULL,
+    scope_violation_details JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    
+    INDEX idx_ou_scoped_ops_user (user_id),
+    INDEX idx_ou_scoped_ops_ou (organization_unit_id),
+    INDEX idx_ou_scoped_ops_operation (operation_type)
+);
+
+-- Enhanced role assignments with scope tracking
+ALTER TABLE user_roles ADD COLUMN scope_validation_required BOOLEAN DEFAULT false;
+ALTER TABLE user_roles ADD COLUMN scope_validation_timestamp TIMESTAMP;
+```
+
 ## API Implementation
 
 ### Scoped Role Assignment API
@@ -570,6 +1064,56 @@ ON scoped_role_assignments(user_role_id, scope_type, scope_id);
   "scopeValid": true,
   "effectiveRole": "role-view-user-details-uuid",
   "expiresAt": "2024-12-31T23:59:59Z"
+}
+```
+
+### API Endpoint Security
+
+```typescript
+// Enhanced organization unit controller
+class OrganizationUnitController {
+  @Post('/:id/users')
+  @UseMiddleware(AuthMiddleware, OUAuthorizationMiddleware)
+  async addUserToOU(
+    @Param('id') ouId: UUID,
+    @Body() request: AddUserToOURequest,
+    @CurrentUser() user: AuthenticatedUser
+  ): Promise<ApiResponse> {
+    // Validate OU scope
+    const scopeValidation = await this.ouValidator.validateUserOUAccess(user, ouId);
+    
+    if (!scopeValidation.hasAccess) {
+      throw new ForbiddenError('Access denied: No permissions for this organization unit');
+    }
+    
+    // Check specific permission for adding users
+    if (!await this.permissionService.hasPermission(user.id, 'add_users_to_ou', { organizationUnitId: ouId })) {
+      throw new ForbiddenError('Insufficient permissions to add users to this organization unit');
+    }
+    
+    // Validate target user belongs to the same organization
+    const targetUser = await this.userService.getUser(request.userId);
+    if (targetUser.organizationId !== user.organizationId) {
+      throw new ValidationError('Cannot add user from different organization');
+    }
+    
+    // Perform the operation
+    return await this.ouService.addUserToOrganizationUnit(ouId, request.userId);
+  }
+  
+  @Delete('/:id')
+  @UseMiddleware(AuthMiddleware, OUAuthorizationMiddleware)
+  async deleteOrganizationUnit(
+    @Param('id') ouId: UUID,
+    @CurrentUser() user: AuthenticatedUser
+  ): Promise<ApiResponse> {
+    // Only admins can delete organization units
+    if (!await this.permissionService.hasPermission(user.id, 'delete_organization_units')) {
+      throw new ForbiddenError('Only administrators can delete organization units');
+    }
+    
+    return await this.ouService.deleteOrganizationUnit(ouId);
+  }
 }
 ```
 
@@ -748,3 +1292,178 @@ const canViewBetaMember = await permissionService.hasPermission(
 // Returns: false (no role in beta group)
 ```
 
+### Use Case 4: Organization Unit Hierarchy Management
+
+**Scenario**: OU owners and managers can only manage users within their own organization units.
+
+```typescript
+// OU owner can invite users to their OU
+const ouOwnerInvitation = {
+  userId: 'user-new-hire-uuid',
+  organizationUnitId: 'ou-engineering-uuid',
+  invitedBy: 'user-ou-owner-uuid',
+  reason: 'New hire for engineering team'
+};
+
+// Permission check for invitation
+const canInvite = await permissionService.hasPermission(
+  'user-ou-owner-uuid',
+  'invite_users_to_ou',
+  {
+    scopeType: 'organization_unit',
+    scopeId: 'ou-engineering-uuid',
+    targetUserId: 'user-new-hire-uuid',
+    action: 'invite'
+  }
+);
+// Returns: true (OU owner can invite to their OU)
+
+// OU manager cannot invite users to different OU
+const cannotInviteToDifferentOU = await permissionService.hasPermission(
+  'user-ou-manager-uuid',
+  'invite_users_to_ou',
+  {
+    scopeType: 'organization_unit',
+    scopeId: 'ou-marketing-uuid', // Different OU
+    targetUserId: 'user-new-hire-uuid',
+    action: 'invite'
+  }
+);
+// Returns: false (OU manager cannot operate in different OU)
+
+// Admin can override OU restrictions
+const adminCanInviteAnywhere = await permissionService.hasPermission(
+  'user-admin-uuid',
+  'invite_users_to_ou',
+  {
+    scopeType: 'organization_unit',
+    scopeId: 'ou-any-uuid',
+    targetUserId: 'user-any-uuid',
+    action: 'invite'
+  }
+);
+// Returns: true (admin has organization-wide permissions)
+```
+
+## Security and Validation
+
+### Scope Violation Prevention
+
+```typescript
+class SecurityValidator {
+  async validateScopeBoundary(
+    userId: UUID,
+    operation: string,
+    targetScope: ScopeContext
+  ): Promise<SecurityValidationResult> {
+    const user = await this.getUser(userId);
+    const userRoles = await this.getUserRoles(userId);
+    
+    // Check for admin override
+    if (await this.hasAdminPrivileges(user)) {
+      return { isValid: true, reason: 'Admin override' };
+    }
+    
+    // Check if user has appropriate scoped permissions
+    for (const userRole of userRoles) {
+      const role = await this.getRole(userRole.roleId);
+      
+      if (this.roleAppliesToScope(role, targetScope)) {
+        const hasPermission = await this.hasPermissionForOperation(
+          user.id, 
+          operation, 
+          targetScope
+        );
+        
+        if (hasPermission) {
+          return { isValid: true, reason: 'Valid scoped permission' };
+        }
+      }
+    }
+    
+    // Log security violation
+    await this.auditLogger.logSecurityViolation(userId, operation, targetScope);
+    
+    return { 
+      isValid: false, 
+      reason: 'Insufficient scoped permissions for operation' 
+    };
+  }
+  
+  private async hasAdminPrivileges(user: User): Promise<boolean> {
+    const adminRoles = await this.getUserRolesByType(user.id, 'ADMIN');
+    return adminRoles.length > 0;
+  }
+  
+  private roleAppliesToScope(role: Role, targetScope: ScopeContext): boolean {
+    if (role.scopeType === ScopeType.ORGANIZATION) {
+      return true; // Admin roles apply everywhere
+    }
+    
+    return role.scopeType === targetScope.type && role.scopeId === targetScope.id;
+  }
+}
+
+interface ScopeContext {
+  type: ScopeType;
+  id: UUID;
+  organizationId: UUID;
+}
+
+interface SecurityValidationResult {
+  isValid: boolean;
+  reason: string;
+}
+```
+
+### Audit Trail for Scoped Operations
+
+```typescript
+class ScopedAuditLogger {
+  async logScopedOperation(
+    userId: UUID,
+    operation: string,
+    scopeContext: ScopeContext,
+    result: OperationResult
+  ): Promise<void> {
+    const auditEntry = {
+      userId,
+      operation,
+      scopeType: scopeContext.type,
+      scopeId: scopeContext.id,
+      organizationId: scopeContext.organizationId,
+      timestamp: new Date(),
+      result: result.status,
+      details: {
+        operationDetails: result.details,
+        scopeValidation: result.scopeValidation,
+        permissionCheck: result.permissionCheck
+      }
+    };
+    
+    await this.auditRepository.create(auditEntry);
+    
+    // Log security violations
+    if (!result.scopeValidation.isValid) {
+      await this.logSecurityViolation(auditEntry, result.scopeValidation.reason);
+    }
+  }
+  
+  private async logSecurityViolation(
+    auditEntry: any,
+    violationReason: string
+  ): Promise<void> {
+    const violationEntry = {
+      ...auditEntry,
+      violationType: 'SCOPE_VIOLATION',
+      violationReason,
+      severity: 'HIGH',
+      requiresReview: true
+    };
+    
+    await this.securityViolationRepository.create(violationEntry);
+  }
+}
+```
+
+This comprehensive implementation provides robust scoped role functionality that ensures proper access control boundaries while maintaining system performance and usability. The design supports both group-scoped and organization unit-scoped roles, with comprehensive validation and audit capabilities.
