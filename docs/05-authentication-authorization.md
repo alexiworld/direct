@@ -292,39 +292,39 @@ interface ScopedRole {
 
 ### Scoped Role Examples
 
-#### Group-Scoped Role: "Group Project Manager"
+#### Group-Scoped Role: "Group Manager"
 
 ```typescript
-const groupProjectManagerRole: ScopedRole = {
-  id: 'role-group-pm-uuid',
-  name: 'Group Project Manager',
-  description: 'Can manage projects within their assigned group',
+const groupManagerRole: ScopedRole = {
+  id: 'role-group-mgr-uuid',
+  name: 'Group Manager',
+  description: 'Can manage resources and members within their assigned group',
   scopeType: ScopeType.GROUP,
   scopeId: 'group-developers-uuid',
   permissions: [
-    { name: 'create_projects', scope: 'group' },
-    { name: 'edit_projects', scope: 'group' },
-    { name: 'delete_projects', scope: 'group' },
-    { name: 'assign_project_members', scope: 'group' }
+    { name: 'create_group_resources', scope: 'group' },
+    { name: 'edit_group_resources', scope: 'group' },
+    { name: 'delete_group_resources', scope: 'group' },
+    { name: 'manage_group_members', scope: 'group' }
   ],
   organizationId: 'org-uuid'
 };
 ```
 
-#### Organization Unit-Scoped Role: "Department Manager"
+#### Organization Unit-Scoped Role: "Organization Unit Manager"
 
 ```typescript
-const departmentManagerRole: ScopedRole = {
-  id: 'role-dept-mgr-uuid',
-  name: 'Department Manager',
-  description: 'Can manage users and resources within their department',
+const ouManagerRole: ScopedRole = {
+  id: 'role-ou-mgr-uuid',
+  name: 'Organization Unit Manager',
+  description: 'Can manage users and resources within their organization unit',
   scopeType: ScopeType.ORGANIZATION_UNIT,
   scopeId: 'ou-engineering-uuid',
   permissions: [
-    { name: 'view_department_users', scope: 'organization_unit' },
-    { name: 'invite_department_users', scope: 'organization_unit' },
-    { name: 'move_department_users', scope: 'organization_unit' },
-    { name: 'manage_department_resources', scope: 'organization_unit' }
+    { name: 'view_ou_users', scope: 'organization_unit' },
+    { name: 'invite_ou_users', scope: 'organization_unit' },
+    { name: 'move_ou_users', scope: 'organization_unit' },
+    { name: 'manage_ou_resources', scope: 'organization_unit' }
   ],
   organizationId: 'org-uuid'
 };

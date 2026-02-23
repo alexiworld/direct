@@ -206,22 +206,70 @@ GET /api/v1/organizations/{orgId}
 Authorization: Bearer token
 ```
 
-**Create Organization**
+**Create Organization (Atomic Transaction)**
 ```http
 POST /api/v1/organizations
-Authorization: Bearer token
 Content-Type: application/json
 
 {
-  "name": "Acme Corporation",
-  "contactInfo": {
-    "email": "admin@acme.com",
-    "phone": "+1-555-0123",
-    "address": {
-      "street": "123 Main St",
-      "city": "Anytown",
-      "country": "USA"
+  "organization": {
+    "name": "Acme Corporation",
+    "contactInfo": {
+      "email": "admin@acme.com",
+      "phone": "+1-555-0123",
+      "address": {
+        "street": "123 Main St",
+        "city": "Anytown",
+        "country": "USA"
+      }
     }
+  },
+  "superAdmin": {
+    "email": "admin@acme.com",
+    "firstName": "John",
+    "lastName": "Doe",
+    "phone": "+1-555-0123"
+  }
+}
+```
+
+**Response Format:**
+```json
+{
+  "data": {
+    "organization": {
+      "id": "org-uuid",
+      "name": "Acme Corporation",
+      "status": "active",
+      "createdAt": "2024-02-21T12:00:00Z"
+    },
+    "superAdmin": {
+      "id": "user-uuid",
+      "email": "admin@acme.com",
+      "firstName": "John",
+      "lastName": "Doe",
+      "organizationId": "org-uuid",
+      "organizationUnitId": "root-unit-uuid",
+      "status": "active"
+    },
+    "rootOrganizationUnit": {
+      "id": "root-unit-uuid",
+      "name": "Acme Corporation",
+      "organizationId": "org-uuid",
+      "hierarchyLevel": 0,
+      "path": "root-unit-uuid",
+      "status": "active"
+    },
+    "authentication": {
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      "expiresIn": 3600,
+      "refreshToken": "refresh-token-string"
+    }
+  },
+  "meta": {
+    "timestamp": "2024-02-21T12:00:00Z",
+    "requestId": "req-uuid",
+    "version": "1.1"
   }
 }
 ```

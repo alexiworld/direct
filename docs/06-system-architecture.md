@@ -304,8 +304,7 @@ class EventPublisher {
 - **pgBouncer**: Connection pooling
 
 #### Message Broker
-- **RabbitMQ**: Message queuing and event streaming
-- **Kafka**: Event streaming for high-throughput scenarios
+- **Kafka**: Event streaming and message queuing for high-throughput scenarios
 
 #### Authentication & Authorization
 - **JWT**: Stateless authentication tokens
@@ -815,18 +814,30 @@ services:
     volumes:
       - redis_data:/data
 
-  rabbitmq:
-    image: rabbitmq:3-management
+  kafka:
+    image: bitnami/kafka:latest
     environment:
-      RABBITMQ_DEFAULT_USER: user
-      RABBITMQ_DEFAULT_PASS: password
+      KAFKA_CFG_PROCESS_ROLES: broker
+      KAFKA_CFG_NODE_ID: 1
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CFG_LISTENERS: INTERNAL://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_CFG_ADVERTISED_LISTENERS: INTERNAL://kafka:9092
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CFG_LOG_DIRS: /bitnami/kafka/data
+      KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR: 1
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      - "9092:9092"
+    volumes:
+      - kafka_data:/bitnami/kafka/data
 
 volumes:
   postgres_data:
   redis_data:
+  kafka_data:
 ```
 
 ### Production Environment
