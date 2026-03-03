@@ -17,6 +17,7 @@ export interface User {
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
+  metadata?: any;
 }
 
 export interface Role {
@@ -58,12 +59,24 @@ export interface PermissionContext {
   sourceOrganizationUnitId?: UUID;
   targetOrganizationUnitId?: UUID;
   action: string;
+  scopeType?: ScopeType;
+  scopeId?: UUID;
 }
 
 export enum ScopeType {
   ORGANIZATION = 'organization',
   GROUP = 'group',
   ORGANIZATION_UNIT = 'organization_unit'
+}
+
+export interface Organization {
+  id: UUID;
+  name: string;
+  description: string | null;
+  status: 'active' | 'inactive' | 'deleted';
+  createdAt: Date;
+  updatedAt: Date;
+  metadata?: any;
 }
 
 export interface OrganizationUnit {
@@ -159,3 +172,30 @@ export interface OUAccessValidation {
   hasAccess: boolean;
   accessType: 'owner' | 'manager' | 'member' | 'none';
 }
+
+export interface GroupAccessValidation {
+  hasAccess: boolean;
+  accessType: 'owner' | 'manager' | 'member' | 'none';
+}
+
+export interface ValidationResult {
+  isValid: boolean;
+  reason: string;
+}
+
+export interface AssignScopedRoleCommand {
+  userId: UUID;
+  roleId: UUID;
+  assignedBy: UUID;
+  scopeType: ScopeType;
+  expiresAt?: Date;
+  reason?: string;
+}
+
+export interface AssignScopedRoleDto {
+  roleId: UUID;
+  scopeType: ScopeType;
+  expiresAt?: Date;
+  reason?: string;
+}
+

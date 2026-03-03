@@ -1,7 +1,8 @@
 import { injectable, inject } from 'inversify';
 import { ScopeType, PermissionContext, UserRole, User, Role } from '../types';
-import { AuditLoggerService } from './audit-logger.service';
+import { AuditService } from './audit.service';
 import { DatabaseService } from './database.service';
+import { OUContextValidator } from './ou-context-validator.service';
 
 export interface OUAccessValidation {
   hasAccess: boolean;
@@ -15,8 +16,9 @@ export interface ValidationResult {
 
 @injectable()
 export class PermissionEvaluator {
-  @inject('DatabaseService') private databaseService: DatabaseService;
-  @inject('AuditLoggerService') private auditLogger: AuditLoggerService;
+  @inject('DatabaseService') private readonly databaseService!: DatabaseService;
+  @inject('AuditService') private readonly auditLogger!: AuditService;
+  @inject('OUContextValidator') private readonly ouValidator!: OUContextValidator;
 
   async evaluatePermission(
     userId: string, 
@@ -111,7 +113,7 @@ export class PermissionEvaluator {
     }
     
     // Check specific permission requirements based on access type
-    return await this.validateOUPermissionRequirements(role, permissionName, context, ouValidation);
+    return await this.validateOUPermissionRequirements(role, 'unknown', context, ouValidation);
   }
 
   private async validateUserOUAccess(

@@ -25,14 +25,14 @@ CREATE TABLE IF NOT EXISTS ou_scoped_operations (
     target_user_id UUID REFERENCES users(id),
     scope_validation_passed BOOLEAN NOT NULL,
     scope_violation_details JSONB,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    
-    -- Indexes for performance
-    INDEX idx_ou_scoped_ops_user (user_id),
-    INDEX idx_ou_scoped_ops_ou (organization_unit_id),
-    INDEX idx_ou_scoped_ops_operation (operation_type),
-    INDEX idx_ou_scoped_ops_created_at (created_at)
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Create indexes for OU-scoped operations table
+CREATE INDEX IF NOT EXISTS idx_ou_scoped_ops_user ON ou_scoped_operations (user_id);
+CREATE INDEX IF NOT EXISTS idx_ou_scoped_ops_ou ON ou_scoped_operations (organization_unit_id);
+CREATE INDEX IF NOT EXISTS idx_ou_scoped_ops_operation ON ou_scoped_operations (operation_type);
+CREATE INDEX IF NOT EXISTS idx_ou_scoped_ops_created_at ON ou_scoped_operations (created_at);
 
 -- Create table for role scope validation history
 CREATE TABLE IF NOT EXISTS role_scope_validations (
@@ -44,16 +44,16 @@ CREATE TABLE IF NOT EXISTS role_scope_validations (
     validation_type VARCHAR(50) NOT NULL, -- 'assignment', 'access', 'operation'
     validation_result BOOLEAN NOT NULL,
     validation_details JSONB,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    
-    -- Indexes for performance
-    INDEX idx_role_scope_validations_role (role_id),
-    INDEX idx_role_scope_validations_user (user_id),
-    INDEX idx_role_scope_validations_ou (organization_unit_id),
-    INDEX idx_role_scope_validations_group (group_id),
-    INDEX idx_role_scope_validations_type (validation_type),
-    INDEX idx_role_scope_validations_created_at (created_at)
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Create indexes for role scope validations table
+CREATE INDEX IF NOT EXISTS idx_role_scope_validations_role ON role_scope_validations (role_id);
+CREATE INDEX IF NOT EXISTS idx_role_scope_validations_user ON role_scope_validations (user_id);
+CREATE INDEX IF NOT EXISTS idx_role_scope_validations_ou ON role_scope_validations (organization_unit_id);
+CREATE INDEX IF NOT EXISTS idx_role_scope_validations_group ON role_scope_validations (group_id);
+CREATE INDEX IF NOT EXISTS idx_role_scope_validations_type ON role_scope_validations (validation_type);
+CREATE INDEX IF NOT EXISTS idx_role_scope_validations_created_at ON role_scope_validations (created_at);
 
 -- Create function to validate OU scope for role assignments
 CREATE OR REPLACE FUNCTION validate_ou_role_scope(

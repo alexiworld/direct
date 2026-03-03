@@ -1,7 +1,7 @@
 import { injectable, inject } from 'inversify';
 import { ScopeType, UserRole, User, Role, AssignmentContext } from '../types';
 import { DatabaseService } from './database.service';
-import { AuditLoggerService } from './audit-logger.service';
+import { AuditService } from './audit.service';
 import { OUContextValidator } from './ou-context-validator.service';
 
 export interface RoleAssignmentResult {
@@ -12,9 +12,9 @@ export interface RoleAssignmentResult {
 
 @injectable()
 export class RoleAssignmentService {
-  @inject('DatabaseService') private databaseService: DatabaseService;
-  @inject('AuditLoggerService') private auditLogger: AuditLoggerService;
-  @inject('OUContextValidator') private ouValidator: OUContextValidator = {} as OUContextValidator;
+  @inject('DatabaseService') private readonly databaseService!: DatabaseService;
+  @inject('AuditService') private readonly auditLogger!: AuditService;
+  @inject('OUContextValidator') private readonly ouValidator!: OUContextValidator;
 
   async assignScopedRole(
     userId: string,
@@ -70,7 +70,7 @@ export class RoleAssignmentService {
       return {
         userRole: {} as UserRole,
         success: false,
-        message: error.message
+        message: (error as Error).message
       };
     }
   }
@@ -126,7 +126,7 @@ export class RoleAssignmentService {
       return {
         userRole: {} as UserRole,
         success: false,
-        message: error.message
+        message: (error as Error).message
       };
     }
   }

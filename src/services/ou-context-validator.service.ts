@@ -1,7 +1,7 @@
 import { injectable, inject } from 'inversify';
 import { ScopeType, PermissionContext, User, Role, UserRole } from '../types';
 import { DatabaseService } from './database.service';
-import { AuditLoggerService } from './audit-logger.service';
+import { AuditService } from './audit.service';
 
 export interface OUAccessValidation {
   hasAccess: boolean;
@@ -15,8 +15,8 @@ export interface ValidationResult {
 
 @injectable()
 export class OUContextValidator {
-  @inject('DatabaseService') private databaseService: DatabaseService;
-  @inject('AuditLoggerService') private auditLogger: AuditLoggerService;
+  @inject('DatabaseService') private readonly databaseService!: DatabaseService;
+  @inject('AuditService') private readonly auditLogger!: AuditService;
 
   async validateOUCrossOperation(
     userId: string,
@@ -61,23 +61,28 @@ export class OUContextValidator {
     user: User, 
     organizationUnitId: string
   ): Promise<OUAccessValidation> {
-    // Check if user is owner of the OU
-    const ouOwnerId = await this.getOUOwnerId(organizationUnitId);
-    if (user.id === ouOwnerId) {
-      return { hasAccess: true, accessType: 'owner' };
+    try {
+      // Check if user is owner of the OU
+      const ouOwnerId = await this.getOUOwnerId(organizationUnitId);
+      if (user.id === ouOwnerId) {
+        return { hasAccess: true, accessType: 'owner' };
+      }
+      
+      // Check if user is manager of the OU
+      if (await this.isUserManager(user.id, organizationUnitId)) {
+        return { hasAccess: true, accessType: 'manager' };
+      }
+      
+      // Check if user belongs to the OU (for member operations)
+      if (user.organizationUnitId === organizationUnitId) {
+        return { hasAccess: true, accessType: 'member' };
+      }
+      
+      return { hasAccess: false, accessType: 'none' };
+    } catch (error) {
+      // If database fails, assume no access for security
+      return { hasAccess: false, accessType: 'none' };
     }
-    
-    // Check if user is manager of the OU
-    if (await this.isUserManager(user.id, organizationUnitId)) {
-      return { hasAccess: true, accessType: 'manager' };
-    }
-    
-    // Check if user belongs to the OU (for member operations)
-    if (user.organizationUnitId === organizationUnitId) {
-      return { hasAccess: true, accessType: 'member' };
-    }
-    
-    return { hasAccess: false, accessType: 'none' };
   }
 
   async validateUserInvitation(
@@ -234,11 +239,16 @@ export class OUContextValidator {
   }
 
   private async hasAdminPrivileges(user: User): Promise<boolean> {
-    const userRoles = await this.getUserRoles(user.id);
-    
-    return userRoles.some(userRole => 
-      userRole.name === 'SUPER_ADMIN' || userRole.name === 'ADMIN'
-    );
+    try {
+      const userRoles = await this.getUserRoles(user.id);
+      
+      return userRoles.some(userRole => 
+        userRole.name === 'SUPER_ADMIN' || userRole.name === 'ADMIN'
+      );
+    } catch (error) {
+      // If database fails, assume no admin privileges for security
+      return false;
+    }
   }
 
   private async getOUOwnerId(organizationUnitId: string): Promise<string | null> {

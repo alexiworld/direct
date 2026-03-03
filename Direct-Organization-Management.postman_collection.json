@@ -1,0 +1,1592 @@
+{
+  "info": {
+    "name": "Direct Organization Management System - Complete API",
+    "description": "Complete API collection for the Direct Organization Management System including organization, OU, group, and user management with atomic organization setup",
+    "version": "2.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "item": [
+        {
+          "name": "Server Health Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            }
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"healthy\",\n  \"timestamp\": \"2026-02-25T04:10:15.017Z\",\n  \"message\": \"Direct Organization Management System Backend is running\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Organization Setup (Atomic)",
+      "item": [
+        {
+          "name": "Setup Organization (Atomic)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Acme Corporation\",\n  \"description\": \"Global technology company\",\n  \"status\": \"active\",\n  \"metadata\": {\n    \"industry\": \"Technology\",\n    \"size\": \"Enterprise\"\n  },\n  \"powerAdmin\": {\n    \"firstName\": \"John\",\n    \"lastName\": \"Doe\",\n    \"email\": \"john.doe@acme.com\",\n    \"phone\": \"+1-555-0123\",\n    \"metadata\": {\n      \"employeeId\": \"PA-001\",\n      \"role\": \"Power Admin\"\n    }\n  },\n  \"rootOU\": {\n    \"name\": \"Headquarters\",\n    \"description\": \"Main organization unit\",\n    \"metadata\": {\n      \"location\": \"San Francisco\",\n      \"budget\": 5000000\n    }\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/organizations/setup",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "organizations", "setup"]
+            }
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "status": "Created",
+              "code": 201,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"organizationId\": \"org-uuid\",\n    \"powerAdminUserId\": \"user-uuid\",\n    \"rootOUId\": \"ou-uuid\",\n    \"powerAdminRoleId\": \"role-uuid\",\n    \"powerAdminUserRole\": {\n      \"id\": \"user-role-uuid\",\n      \"userId\": \"user-uuid\",\n      \"roleId\": \"role-uuid\",\n      \"assignedBy\": \"user-uuid\",\n      \"scopeType\": \"organization\",\n      \"scopeId\": \"org-uuid\",\n      \"status\": \"active\",\n      \"createdAt\": \"2024-01-01T00:00:00.000Z\",\n      \"updatedAt\": \"2024-01-01T00:00:00.000Z\"\n    }\n  }\n}"
+            },
+            {
+              "name": "Error Response - Validation",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"error\": \"Organization name is required\"\n}"
+            },
+            {
+              "name": "Error Response - Conflict",
+              "status": "Conflict",
+              "code": 409,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"error\": \"Organization with this name or user with this email already exists\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Organization Setup Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/organizations/{{organizationId}}/setup-status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "organizations", "{{organizationId}}", "setup-status"]
+            }
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"organization\": {\n      \"id\": \"org-uuid\",\n      \"name\": \"Acme Corporation\",\n      \"status\": \"active\",\n      \"createdAt\": \"2024-01-01T00:00:00.000Z\"\n    },\n    \"setupStatus\": {\n      \"organizationUnits\": 1,\n      \"users\": 1,\n      \"roles\": 1,\n      \"userRoles\": 1\n    }\n  }\n}"
+            },
+            {
+              "name": "Error Response - Not Found",
+              "status": "Not Found",
+              "code": 404,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": false,\n  \"error\": \"Organization not found\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Organization Management",
+      "item": [
+        {
+          "name": "Create Organization",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Acme Corporation\",\n  \"description\": \"Global technology company\",\n  \"status\": \"active\",\n  \"metadata\": {\n    \"industry\": \"Technology\",\n    \"size\": \"Enterprise\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/organizations",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "organizations"]
+            }
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": \"org-uuid\",\n    \"name\": \"Acme Corporation\",\n    \"description\": \"Global technology company\",\n    \"status\": \"active\",\n    \"createdAt\": \"2024-01-01T00:00:00.000Z\",\n    \"updatedAt\": \"2024-01-01T00:00:00.000Z\",\n    \"metadata\": {\n      \"industry\": \"Technology\",\n      \"size\": \"Enterprise\"\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Organization",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/organizations/{{organizationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "organizations", "{{organizationId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": \"org-uuid\",\n    \"name\": \"Acme Corporation\",\n    \"description\": \"Global technology company\",\n    \"status\": \"active\",\n    \"createdAt\": \"2024-01-01T00:00:00.000Z\",\n    \"updatedAt\": \"2024-01-01T00:00:00.000Z\",\n    \"metadata\": {\n      \"industry\": \"Technology\",\n      \"size\": \"Enterprise\"\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Organization",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Acme Corporation Inc.\",\n  \"description\": \"Global technology company with expanded services\",\n  \"status\": \"active\",\n  \"metadata\": {\n    \"industry\": \"Technology\",\n    \"size\": \"Enterprise\",\n    \"founded\": \"2020\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/organizations/{{organizationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "organizations", "{{organizationId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": \"org-uuid\",\n    \"name\": \"Acme Corporation Inc.\",\n    \"description\": \"Global technology company with expanded services\",\n    \"status\": \"active\",\n    \"createdAt\": \"2024-01-01T00:00:00.000Z\",\n    \"updatedAt\": \"2024-01-02T00:00:00.000Z\",\n    \"metadata\": {\n      \"industry\": \"Technology\",\n      \"size\": \"Enterprise\",\n      \"founded\": \"2020\"\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "List Organizations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/organizations?page={{page}}&limit={{limit}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "organizations"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "{{page}}"
+                },
+                {
+                  "key": "limit",
+                  "value": "{{limit}}"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"organizations\": [\n      {\n        \"id\": \"org-1\",\n        \"name\": \"Acme Corporation\",\n        \"description\": \"Global technology company\",\n        \"status\": \"active\",\n        \"createdAt\": \"2024-01-01T00:00:00.000Z\",\n        \"updatedAt\": \"2024-01-01T00:00:00.000Z\"\n      }\n    ],\n    \"pagination\": {\n      \"page\": 1,\n      \"limit\": 10,\n      \"total\": 1,\n      \"totalPages\": 1\n    }\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Organization Unit Management",
+      "item": [
+        {
+          "name": "Create Organization Unit",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"organizationId\": \"org-uuid\",\n  \"name\": \"Engineering Department\",\n  \"description\": \"Engineering and development team\",\n  \"parentId\": null,\n  \"status\": \"active\",\n  \"metadata\": {\n    \"budget\": 1000000,\n    \"location\": \"San Francisco\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/organizations/{{organizationId}}/units",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "organizations", "{{organizationId}}", "units"]
+            }
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": \"ou-engineering-uuid\",\n    \"organizationId\": \"org-uuid\",\n    \"name\": \"Engineering Department\",\n    \"description\": \"Engineering and development team\",\n    \"parentId\": null,\n    \"status\": \"active\",\n    \"createdAt\": \"2024-01-01T00:00:00.000Z\",\n    \"updatedAt\": \"2024-01-01T00:00:00.000Z\",\n    \"metadata\": {\n      \"budget\": 1000000,\n      \"location\": \"San Francisco\"\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Organization Unit",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/organizations/{{organizationId}}/units/{{ouId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "organizations", "{{organizationId}}", "units", "{{ouId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": \"ou-engineering-uuid\",\n    \"organizationId\": \"org-uuid\",\n    \"name\": \"Engineering Department\",\n    \"description\": \"Engineering and development team\",\n    \"parentId\": null,\n    \"status\": \"active\",\n    \"createdAt\": \"2024-01-01T00:00:00.000Z\",\n    \"updatedAt\": \"2024-01-01T00:00:00.000Z\",\n    \"metadata\": {\n      \"budget\": 1000000,\n      \"location\": \"San Francisco\"\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Organization Unit",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Engineering & DevOps\",\n  \"description\": \"Engineering, development, and operations\",\n  \"status\": \"active\",\n  \"metadata\": {\n    \"budget\": 1500000,\n    \"location\": \"San Francisco\",\n    \"teamSize\": 150\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/organizations/{{organizationId}}/units/{{ouId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "organizations", "{{organizationId}}", "units", "{{ouId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": \"ou-engineering-uuid\",\n    \"organizationId\": \"org-uuid\",\n    \"name\": \"Engineering & DevOps\",\n    \"description\": \"Engineering, development, and operations\",\n    \"parentId\": null,\n    \"status\": \"active\",\n    \"createdAt\": \"2024-01-01T00:00:00.000Z\",\n    \"updatedAt\": \"2024-01-02T00:00:00.000Z\",\n    \"metadata\": {\n      \"budget\": 1500000,\n      \"location\": \"San Francisco\",\n      \"teamSize\": 150\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "List Organization Units",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/organizations/{{organizationId}}/units?parentId={{parentId}}&includeSubUnits={{includeSubUnits}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "organizations", "{{organizationId}}", "units"],
+              "query": [
+                {
+                  "key": "parentId",
+                  "value": "{{parentId}}"
+                },
+                {
+                  "key": "includeSubUnits",
+                  "value": "{{includeSubUnits}}"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"units\": [\n      {\n        \"id\": \"ou-engineering-uuid\",\n        \"organizationId\": \"org-uuid\",\n        \"name\": \"Engineering Department\",\n        \"description\": \"Engineering and development team\",\n        \"parentId\": null,\n        \"status\": \"active\",\n        \"createdAt\": \"2024-01-01T00:00:00.000Z\",\n        \"updatedAt\": \"2024-01-01T00:00:00.000Z\"\n      }\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete Organization Unit",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/organizations/{{organizationId}}/units/{{ouId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "organizations", "{{organizationId}}", "units", "{{ouId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Organization unit deleted successfully\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "User Management",
+      "item": [
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"organizationId\": \"org-uuid\",\n  \"organizationUnitId\": \"ou-engineering-uuid\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"phone\": \"+1-555-0123\",\n  \"status\": \"active\",\n  \"metadata\": {\n    \"employeeId\": \"EMP-001\",\n    \"hireDate\": \"2024-01-01\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users"]
+            }
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": \"user-uuid\",\n    \"organizationId\": \"org-uuid\",\n    \"organizationUnitId\": \"ou-engineering-uuid\",\n    \"firstName\": \"John\",\n    \"lastName\": \"Doe\",\n    \"email\": \"john.doe@example.com\",\n    \"phone\": \"+1-555-0123\",\n    \"status\": \"active\",\n    \"lastLoginAt\": null,\n    \"failedLoginAttempts\": 0,\n    \"lockedUntil\": null,\n    \"createdAt\": \"2024-01-01T00:00:00.000Z\",\n    \"updatedAt\": \"2024-01-01T00:00:00.000Z\",\n    \"deletedAt\": null,\n    \"metadata\": {\n      \"employeeId\": \"EMP-001\",\n      \"hireDate\": \"2024-01-01\"\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get User",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "{{userId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": \"user-uuid\",\n    \"organizationId\": \"org-uuid\",\n    \"organizationUnitId\": \"ou-engineering-uuid\",\n    \"firstName\": \"John\",\n    \"lastName\": \"Doe\",\n    \"email\": \"john.doe@example.com\",\n    \"phone\": \"+1-555-0123\",\n    \"status\": \"active\",\n    \"lastLoginAt\": \"2024-01-01T10:00:00.000Z\",\n    \"failedLoginAttempts\": 0,\n    \"lockedUntil\": null,\n    \"createdAt\": \"2024-01-01T00:00:00.000Z\",\n    \"updatedAt\": \"2024-01-01T00:00:00.000Z\",\n    \"deletedAt\": null,\n    \"metadata\": {\n      \"employeeId\": \"EMP-001\",\n      \"hireDate\": \"2024-01-01\"\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"phone\": \"+1-555-0123\",\n  \"status\": \"active\",\n  \"metadata\": {\n    \"employeeId\": \"EMP-001\",\n    \"hireDate\": \"2024-01-01\",\n    \"department\": \"Engineering\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "{{userId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": \"user-uuid\",\n    \"organizationId\": \"org-uuid\",\n    \"organizationUnitId\": \"ou-engineering-uuid\",\n    \"firstName\": \"John\",\n    \"lastName\": \"Doe\",\n    \"email\": \"john.doe@example.com\",\n    \"phone\": \"+1-555-0123\",\n    \"status\": \"active\",\n    \"lastLoginAt\": \"2024-01-01T10:00:00.000Z\",\n    \"failedLoginAttempts\": 0,\n    \"lockedUntil\": null,\n    \"createdAt\": \"2024-01-01T00:00:00.000Z\",\n    \"updatedAt\": \"2024-01-02T00:00:00.000Z\",\n    \"deletedAt\": null,\n    \"metadata\": {\n      \"employeeId\": \"EMP-001\",\n      \"hireDate\": \"2024-01-01\",\n      \"department\": \"Engineering\"\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users?organizationId={{organizationId}}&organizationUnitId={{organizationUnitId}}&status={{status}}&page={{page}}&limit={{limit}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users"],
+              "query": [
+                {
+                  "key": "organizationId",
+                  "value": "{{organizationId}}"
+                },
+                {
+                  "key": "organizationUnitId",
+                  "value": "{{organizationUnitId}}"
+                },
+                {
+                  "key": "status",
+                  "value": "{{status}}"
+                },
+                {
+                  "key": "page",
+                  "value": "{{page}}"
+                },
+                {
+                  "key": "limit",
+                  "value": "{{limit}}"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"users\": [\n      {\n        \"id\": \"user-uuid\",\n        \"organizationId\": \"org-uuid\",\n        \"organizationUnitId\": \"ou-engineering-uuid\",\n        \"firstName\": \"John\",\n        \"lastName\": \"Doe\",\n        \"email\": \"john.doe@example.com\",\n        \"phone\": \"+1-555-0123\",\n        \"status\": \"active\",\n        \"lastLoginAt\": \"2024-01-01T10:00:00.000Z\",\n        \"failedLoginAttempts\": 0,\n        \"lockedUntil\": null,\n        \"createdAt\": \"2024-01-01T00:00:00.000Z\",\n        \"updatedAt\": \"2024-01-01T00:00:00.000Z\",\n        \"deletedAt\": null\n      }\n    ],\n    \"pagination\": {\n      \"page\": 1,\n      \"limit\": 10,\n      \"total\": 1,\n      \"totalPages\": 1\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Move User to Organization Unit",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"organizationUnitId\": \"ou-marketing-uuid\",\n  \"reason\": \"Department transfer\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/{{userId}}/move",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "{{userId}}", "move"]
+            }
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"User moved to organization unit successfully\",\n  \"data\": {\n    \"previousOrganizationUnitId\": \"ou-engineering-uuid\",\n    \"newOrganizationUnitId\": \"ou-marketing-uuid\",\n    \"movedAt\": \"2024-01-02T00:00:00.000Z\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Remove User from Organization",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Employee termination\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/{{userId}}/remove",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "{{userId}}", "remove"]
+            }
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"User removed from organization successfully\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Group Management",
+      "item": [
+        {
+          "name": "Create Group",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"organizationId\": \"org-uuid\",\n  \"name\": \"Project Alpha Team\",\n  \"description\": \"Team working on Project Alpha\",\n  \"parentId\": null,\n  \"status\": \"active\",\n  \"metadata\": {\n    \"projectCode\": \"PA-001\",\n    \"budget\": 50000\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/groups",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "groups"]
+            }
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": \"group-project-alpha-uuid\",\n    \"organizationId\": \"org-uuid\",\n    \"name\": \"Project Alpha Team\",\n    \"description\": \"Team working on Project Alpha\",\n    \"parentId\": null,\n    \"status\": \"active\",\n    \"createdAt\": \"2024-01-01T00:00:00.000Z\",\n    \"updatedAt\": \"2024-01-01T00:00:00.000Z\",\n    \"metadata\": {\n      \"projectCode\": \"PA-001\",\n      \"budget\": 50000\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Group",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/groups/{{groupId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "groups", "{{groupId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": \"group-project-alpha-uuid\",\n    \"organizationId\": \"org-uuid\",\n    \"name\": \"Project Alpha Team\",\n    \"description\": \"Team working on Project Alpha\",\n    \"parentId\": null,\n    \"status\": \"active\",\n    \"createdAt\": \"2024-01-01T00:00:00.000Z\",\n    \"updatedAt\": \"2024-01-01T00:00:00.000Z\",\n    \"metadata\": {\n      \"projectCode\": \"PA-001\",\n      \"budget\": 50000\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Group",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Project Alpha & Beta Team\",\n  \"description\": \"Team working on Project Alpha and Beta\",\n  \"status\": \"active\",\n  \"metadata\": {\n    \"projectCode\": \"PA-001\",\n    \"budget\": 75000,\n    \"teamLead\": \"user-uuid\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/groups/{{groupId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "groups", "{{groupId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": \"group-project-alpha-uuid\",\n    \"organizationId\": \"org-uuid\",\n    \"name\": \"Project Alpha & Beta Team\",\n    \"description\": \"Team working on Project Alpha and Beta\",\n    \"parentId\": null,\n    \"status\": \"active\",\n    \"createdAt\": \"2024-01-01T00:00:00.000Z\",\n    \"updatedAt\": \"2024-01-02T00:00:00.000Z\",\n    \"metadata\": {\n      \"projectCode\": \"PA-001\",\n      \"budget\": 75000,\n      \"teamLead\": \"user-uuid\"\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "List Groups",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/groups?organizationId={{organizationId}}&parentId={{parentId}}&includeSubGroups={{includeSubGroups}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "groups"],
+              "query": [
+                {
+                  "key": "organizationId",
+                  "value": "{{organizationId}}"
+                },
+                {
+                  "key": "parentId",
+                  "value": "{{parentId}}"
+                },
+                {
+                  "key": "includeSubGroups",
+                  "value": "{{includeSubGroups}}"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"groups\": [\n      {\n        \"id\": \"group-project-alpha-uuid\",\n        \"organizationId\": \"org-uuid\",\n        \"name\": \"Project Alpha Team\",\n        \"description\": \"Team working on Project Alpha\",\n        \"parentId\": null,\n        \"status\": \"active\",\n        \"createdAt\": \"2024-01-01T00:00:00.000Z\",\n        \"updatedAt\": \"2024-01-01T00:00:00.000Z\"\n      }\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete Group",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/groups/{{groupId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "groups", "{{groupId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Group deleted successfully\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Group Membership",
+      "item": [
+        {
+          "name": "Add User to Group",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"user-uuid\",\n  \"role\": \"member\",\n  \"addedBy\": \"user-admin-uuid\",\n  \"reason\": \"Project assignment\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/groups/{{groupId}}/members/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "groups", "{{groupId}}", "members", "users"]
+            }
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"User added to group successfully\",\n  \"data\": {\n    \"groupId\": \"group-project-alpha-uuid\",\n    \"userId\": \"user-uuid\",\n    \"role\": \"member\",\n    \"addedAt\": \"2024-01-01T00:00:00.000Z\",\n    \"addedBy\": \"user-admin-uuid\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Add Group to Group",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"childGroupId\": \"group-sub-team-uuid\",\n  \"role\": \"subteam\",\n  \"addedBy\": \"user-admin-uuid\",\n  \"reason\": \"Team restructuring\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/groups/{{groupId}}/members/groups",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "groups", "{{groupId}}", "members", "groups"]
+            }
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Group added to group successfully\",\n  \"data\": {\n    \"parentGroupId\": \"group-project-alpha-uuid\",\n    \"childGroupId\": \"group-sub-team-uuid\",\n    \"role\": \"subteam\",\n    \"addedAt\": \"2024-01-01T00:00:00.000Z\",\n    \"addedBy\": \"user-admin-uuid\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Remove User from Group",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Project completion\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/groups/{{groupId}}/members/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "groups", "{{groupId}}", "members", "users", "{{userId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"User removed from group successfully\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Remove Group from Group",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Team restructuring\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/groups/{{groupId}}/members/groups/{{childGroupId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "groups", "{{groupId}}", "members", "groups", "{{childGroupId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Group removed from group successfully\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "List Group Members",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/groups/{{groupId}}/members?includeUsers={{includeUsers}}&includeGroups={{includeGroups}}&page={{page}}&limit={{limit}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "groups", "{{groupId}}", "members"],
+              "query": [
+                {
+                  "key": "includeUsers",
+                  "value": "{{includeUsers}}"
+                },
+                {
+                  "key": "includeGroups",
+                  "value": "{{includeGroups}}"
+                },
+                {
+                  "key": "page",
+                  "value": "{{page}}"
+                },
+                {
+                  "key": "limit",
+                  "value": "{{limit}}"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"users\": [\n      {\n        \"id\": \"user-uuid\",\n        \"groupId\": \"group-project-alpha-uuid\",\n        \"userId\": \"user-uuid\",\n        \"role\": \"member\",\n        \"status\": \"active\",\n        \"addedAt\": \"2024-01-01T00:00:00.000Z\",\n        \"addedBy\": \"user-admin-uuid\",\n        \"user\": {\n          \"id\": \"user-uuid\",\n          \"firstName\": \"John\",\n          \"lastName\": \"Doe\",\n          \"email\": \"john.doe@example.com\"\n        }\n      }\n    ],\n    \"groups\": [\n      {\n        \"id\": \"group-sub-team-uuid\",\n        \"parentGroupId\": \"group-project-alpha-uuid\",\n        \"childGroupId\": \"group-sub-team-uuid\",\n        \"role\": \"subteam\",\n        \"status\": \"active\",\n        \"addedAt\": \"2024-01-01T00:00:00.000Z\",\n        \"addedBy\": \"user-admin-uuid\",\n        \"group\": {\n          \"id\": \"group-sub-team-uuid\",\n          \"name\": \"Sub Team\",\n          \"description\": \"Sub team for specific tasks\"\n        }\n      }\n    ]\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "User Roles and Permissions",
+      "item": [
+        {
+          "name": "Get User Roles",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/{{userId}}/roles?includeDirect={{includeDirect}}&includeInherited={{includeInherited}}&scopeType={{scopeType}}&scopeId={{scopeId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "{{userId}}", "roles"],
+              "query": [
+                {
+                  "key": "includeDirect",
+                  "value": "{{includeDirect}}"
+                },
+                {
+                  "key": "includeInherited",
+                  "value": "{{includeInherited}}"
+                },
+                {
+                  "key": "scopeType",
+                  "value": "{{scopeType}}"
+                },
+                {
+                  "key": "scopeId",
+                  "value": "{{scopeId}}"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"directRoles\": [\n      {\n        \"id\": \"user-role-uuid\",\n        \"userId\": \"user-uuid\",\n        \"roleId\": \"role-ou-manager-uuid\",\n        \"assignedBy\": \"user-admin-uuid\",\n        \"assignedAt\": \"2024-01-01T00:00:00.000Z\",\n        \"status\": \"active\",\n        \"role\": {\n          \"id\": \"role-ou-manager-uuid\",\n          \"name\": \"OU Manager\",\n          \"description\": \"Manager of an organization unit\",\n          \"scopeType\": \"organization_unit\"\n        }\n      }\n    ],\n    \"inheritedRoles\": [\n      {\n        \"id\": \"inherited-role-uuid\",\n        \"userId\": \"user-uuid\",\n        \"roleId\": \"role-group-manager-uuid\",\n        \"assignedBy\": \"user-admin-uuid\",\n        \"assignedAt\": \"2024-01-01T00:00:00.000Z\",\n        \"status\": \"active\",\n        \"inheritedFrom\": \"group-project-alpha-uuid\",\n        \"role\": {\n          \"id\": \"role-group-manager-uuid\",\n          \"name\": \"Group Manager\",\n          \"description\": \"Manager of a group\",\n          \"scopeType\": \"group\"\n        }\n      }\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get User Permissions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/{{userId}}/permissions?scopeType={{scopeType}}&scopeId={{scopeId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "{{userId}}", "permissions"],
+              "query": [
+                {
+                  "key": "scopeType",
+                  "value": "{{scopeType}}"
+                },
+                {
+                  "key": "scopeId",
+                  "value": "{{scopeId}}"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"permissionName\": \"assign_roles\",\n      \"description\": \"Permission to assign roles\",\n      \"scopeType\": \"organization_unit\",\n      \"scopeId\": \"ou-engineering-uuid\",\n      \"source\": \"direct\"\n    },\n    {\n      \"permissionName\": \"view_users\",\n      \"description\": \"Permission to view users\",\n      \"scopeType\": \"group\",\n      \"scopeId\": \"group-project-alpha-uuid\",\n      \"source\": \"inherited\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get User Direct Roles",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/{{userId}}/roles/direct",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "{{userId}}", "roles", "direct"]
+            }
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"id\": \"user-role-uuid\",\n      \"userId\": \"user-uuid\",\n      \"roleId\": \"role-ou-manager-uuid\",\n      \"assignedBy\": \"user-admin-uuid\",\n      \"assignedAt\": \"2024-01-01T00:00:00.000Z\",\n      \"status\": \"active\",\n      \"role\": {\n        \"id\": \"role-ou-manager-uuid\",\n        \"name\": \"OU Manager\",\n        \"description\": \"Manager of an organization unit\",\n        \"scopeType\": \"organization_unit\"\n      }\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get User Inherited Roles",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/{{userId}}/roles/inherited",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "{{userId}}", "roles", "inherited"]
+            }
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"id\": \"inherited-role-uuid\",\n      \"userId\": \"user-uuid\",\n      \"roleId\": \"role-group-manager-uuid\",\n      \"assignedBy\": \"user-admin-uuid\",\n      \"assignedAt\": \"2024-01-01T00:00:00.000Z\",\n      \"status\": \"active\",\n      \"inheritedFrom\": \"group-project-alpha-uuid\",\n      \"role\": {\n        \"id\": \"role-group-manager-uuid\",\n        \"name\": \"Group Manager\",\n        \"description\": \"Manager of a group\",\n        \"scopeType\": \"group\"\n      }\n    }\n  ]\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Group Roles and Permissions",
+      "item": [
+        {
+          "name": "Get Group Roles",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/groups/{{groupId}}/roles",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "groups", "{{groupId}}", "roles"]
+            }
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"id\": \"group-role-uuid\",\n      \"groupId\": \"group-project-alpha-uuid\",\n      \"roleId\": \"role-group-manager-uuid\",\n      \"assignedBy\": \"user-admin-uuid\",\n      \"assignedAt\": \"2024-01-01T00:00:00.000Z\",\n      \"status\": \"active\",\n      \"role\": {\n        \"id\": \"role-group-manager-uuid\",\n        \"name\": \"Group Manager\",\n        \"description\": \"Manager of a group\",\n        \"scopeType\": \"group\"\n      }\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get Group Permissions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/groups/{{groupId}}/permissions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "groups", "{{groupId}}", "permissions"]
+            }
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"permissionName\": \"assign_roles\",\n      \"description\": \"Permission to assign roles\",\n      \"scopeType\": \"group\",\n      \"scopeId\": \"group-project-alpha-uuid\"\n    },\n    {\n      \"permissionName\": \"view_users\",\n      \"description\": \"Permission to view users\",\n      \"scopeType\": \"group\",\n      \"scopeId\": \"group-project-alpha-uuid\"\n    }\n  ]\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Scoped Role Management",
+      "item": [
+        {
+          "name": "Assign Scoped Role",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"user-uuid\",\n  \"roleId\": \"role-ou-manager-uuid\",\n  \"assignedBy\": \"user-admin-uuid\",\n  \"scopeType\": \"organization_unit\",\n  \"scopeId\": \"ou-engineering-uuid\",\n  \"expiresAt\": \"2024-12-31T23:59:59.999Z\",\n  \"reason\": \"Project lead assignment\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/scoped-roles/assign",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "scoped-roles", "assign"]
+            }
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": \"user-role-uuid\",\n    \"userId\": \"user-uuid\",\n    \"roleId\": \"role-ou-manager-uuid\",\n    \"assignedBy\": \"user-admin-uuid\",\n    \"assignedAt\": \"2024-01-01T00:00:00.000Z\",\n    \"status\": \"active\",\n    \"createdAt\": \"2024-01-01T00:00:00.000Z\",\n    \"updatedAt\": \"2024-01-01T00:00:00.000Z\",\n    \"name\": \"OU Manager\",\n    \"scopeType\": \"organization_unit\",\n    \"scopeId\": \"ou-engineering-uuid\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Revoke Scoped Role",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"user-uuid\",\n  \"roleId\": \"role-ou-manager-uuid\",\n  \"revokedBy\": \"user-admin-uuid\",\n  \"scopeType\": \"organization_unit\",\n  \"scopeId\": \"ou-engineering-uuid\",\n  \"reason\": \"Role no longer needed\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/scoped-roles/revoke",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "scoped-roles", "revoke"]
+            }
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Role revoked successfully\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get User Scoped Roles",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/scoped-roles/user/{{userId}}?scopeType={{scopeType}}&scopeId={{scopeId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "scoped-roles", "user", "{{userId}}"],
+              "query": [
+                {
+                  "key": "scopeType",
+                  "value": "{{scopeType}}"
+                },
+                {
+                  "key": "scopeId",
+                  "value": "{{scopeId}}"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"id\": \"user-role-uuid\",\n      \"userId\": \"user-uuid\",\n      \"roleId\": \"role-ou-manager-uuid\",\n      \"assignedBy\": \"user-admin-uuid\",\n      \"assignedAt\": \"2024-01-01T00:00:00.000Z\",\n      \"status\": \"active\",\n      \"createdAt\": \"2024-01-01T00:00:00.000Z\",\n      \"updatedAt\": \"2024-01-01T00:00:00.000Z\",\n      \"name\": \"OU Manager\",\n      \"description\": \"Manager of an organization unit\",\n      \"scopeType\": \"organization_unit\",\n      \"scopeId\": \"ou-engineering-uuid\"\n    }\n  ]\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Permission Management",
+      "item": [
+        {
+          "name": "Check Permission",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"user-uuid\",\n  \"permissionName\": \"view_user_details\",\n  \"context\": {\n    \"userId\": \"user-uuid\",\n    \"scopeType\": \"group\",\n    \"scopeId\": \"group-project-alpha-uuid\",\n    \"targetUserId\": \"target-user-uuid\",\n    \"action\": \"view\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/permissions/check",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "permissions", "check"]
+            }
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"hasPermission\": true\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get User Permissions in Scope",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/permissions/user/{{userId}}/scope/{{scopeType}}/{{scopeId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "permissions", "user", "{{userId}}", "scope", "{{scopeType}}", "{{scopeId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": [\n    \"assign_roles\",\n    \"view_users\",\n    \"edit_users\"\n  ]\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Group Hierarchy",
+      "item": [
+        {
+          "name": "Get User Roles with Hierarchy",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/groups/hierarchy/user/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "groups", "hierarchy", "user", "{{userId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"id\": \"user-role-uuid\",\n      \"userId\": \"user-uuid\",\n      \"roleId\": \"role-group-manager-uuid\",\n      \"assignedBy\": \"user-admin-uuid\",\n      \"assignedAt\": \"2024-01-01T00:00:00.000Z\",\n      \"status\": \"active\",\n      \"createdAt\": \"2024-01-01T00:00:00.000Z\",\n      \"updatedAt\": \"2024-01-01T00:00:00.000Z\",\n      \"name\": \"Group Manager\",\n      \"description\": \"Manager of a group\",\n      \"scopeType\": \"group\",\n      \"scopeId\": \"group-parent-uuid\",\n      \"inheritedFrom\": \"group-parent-uuid\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Validate Group Operation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"user-uuid\",\n  \"groupId\": \"group-parent-uuid\",\n  \"permission\": \"view_group_details\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/groups/validate-operation",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "groups", "validate-operation"]
+            }
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"isValid\": true,\n    \"reason\": \"User has permission to view group details\"\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Organization Unit Operations",
+      "item": [
+        {
+          "name": "Validate Cross-OU Operation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"user-uuid\",\n  \"sourceOUId\": \"ou-engineering-uuid\",\n  \"targetOUId\": \"ou-marketing-uuid\",\n  \"action\": \"move_user\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/ous/validate-cross-operation",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ous", "validate-cross-operation"]
+            }
+          },
+          "response": [
+            {
+              "name": "Success Response - Admin",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"isValid\": true,\n    \"reason\": \"User has admin privileges for cross-OU operations\"\n  }\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "organizationId",
+      "value": "org-uuid",
+      "type": "string"
+    },
+    {
+      "key": "ouId",
+      "value": "ou-engineering-uuid",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "user-uuid",
+      "type": "string"
+    },
+    {
+      "key": "groupId",
+      "value": "group-project-alpha-uuid",
+      "type": "string"
+    },
+    {
+      "key": "childGroupId",
+      "value": "group-sub-team-uuid",
+      "type": "string"
+    },
+    {
+      "key": "scopeType",
+      "value": "organization_unit",
+      "type": "string"
+    },
+    {
+      "key": "scopeId",
+      "value": "ou-engineering-uuid",
+      "type": "string"
+    },
+    {
+      "key": "page",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "limit",
+      "value": "10",
+      "type": "string"
+    },
+    {
+      "key": "parentId",
+      "value": "null",
+      "type": "string"
+    },
+    {
+      "key": "includeSubUnits",
+      "value": "false",
+      "type": "string"
+    },
+    {
+      "key": "includeSubGroups",
+      "value": "false",
+      "type": "string"
+    },
+    {
+      "key": "includeUsers",
+      "value": "true",
+      "type": "string"
+    },
+    {
+      "key": "includeGroups",
+      "value": "true",
+      "type": "string"
+    },
+    {
+      "key": "includeDirect",
+      "value": "true",
+      "type": "string"
+    },
+    {
+      "key": "includeInherited",
+      "value": "true",
+      "type": "string"
+    },
+    {
+      "key": "status",
+      "value": "active",
+      "type": "string"
+    },
+    {
+      "key": "organizationUnitId",
+      "value": "ou-engineering-uuid",
+      "type": "string"
+    }
+  ]
+}
