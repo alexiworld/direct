@@ -35,10 +35,7 @@ export class DataAccessService {
   }
 
   async query(text: string, params?: any[]): Promise<any> {
-    // Wait for initialization to complete
-    if (this.initializationPromise) {
-      await this.initializationPromise;
-    }
+    await this.ensureInitialized();
     
     console.log(`🔍 Query called. Database available: ${this.isDatabaseAvailable}, Text: ${text.substring(0, 50)}...`);
     
@@ -208,6 +205,8 @@ export class DataAccessService {
 
   // Organization methods
   async createOrganization(organization: Omit<Organization, 'id' | 'createdAt' | 'updatedAt'>): Promise<Organization> {
+    await this.ensureInitialized();
+    
     if (this.isDatabaseAvailable) {
       const result = await this.databaseService.query(
         `INSERT INTO organizations (name, description, status, metadata, created_at, updated_at)
@@ -222,9 +221,8 @@ export class DataAccessService {
   }
 
   async getOrganization(organizationId: UUID): Promise<Organization | null> {
-    console.log("[DEBUG] getOrganization");
-    console.trace("[DEBUG] getOrganization");
-
+    await this.ensureInitialized();
+    
     if (this.isDatabaseAvailable) {
       console.log("DB is available. No mock!")
       const result = await this.databaseService.query(
@@ -239,6 +237,8 @@ export class DataAccessService {
   }
 
   async updateOrganization(organizationId: UUID, updates: Partial<Organization>): Promise<Organization | null> {
+    await this.ensureInitialized();
+    
     if (this.isDatabaseAvailable) {
       const setClause = Object.keys(updates)
         .map((key, index) => `${key} = $${index + 2}`)
@@ -260,7 +260,6 @@ export class DataAccessService {
   }
 
   async listOrganizations(limit: number, offset: number): Promise<{ organizations: Organization[]; total: number }> {
-    console.log("[DEBUG] listOrganizations!")
     await this.ensureInitialized();
     
     if (this.isDatabaseAvailable) {
@@ -285,6 +284,8 @@ export class DataAccessService {
 
   // Organization setup method
   async setupOrganization(setupData: any): Promise<any> {
+    await this.ensureInitialized();
+    
     if (this.isDatabaseAvailable) {
       return await this.databaseService.transaction(async (client) => {
         // 1. Create Organization
@@ -311,15 +312,14 @@ export class DataAccessService {
         if (setupData.rootOU) {
           const ouResult = await client.query(
             `INSERT INTO organization_units 
-             (organization_id, name, description, parent_id, status, metadata, created_at, updated_at)
-             VALUES ($1, $2, $3, NULL, $4, $5, NOW(), NOW())
+             (organization_id, name, description, parent_id, status, created_at, updated_at)
+             VALUES ($1, $2, $3, NULL, $4, NOW(), NOW())
              RETURNING *`,
             [
               organization.id,
               setupData.rootOU.name,
               setupData.rootOU.description || null,
-              'active',
-              setupData.rootOU.metadata || {}
+              'active'
             ]
           );
           rootOU = ouResult.rows[0];
@@ -361,7 +361,7 @@ export class DataAccessService {
             'system',
             true,
             'active',
-            'organization' as ScopeType,
+            ScopeType.ORGANIZATION,
             organization.id
           ]
         );
@@ -371,15 +371,17 @@ export class DataAccessService {
         // 5. Assign Power Admin Role to User
         const userRoleResult = await client.query(
           `INSERT INTO user_roles 
-           (user_id, role_id, assigned_by, scope_type, scope_id, status, created_at, updated_at)
-           VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+           (user_id, role_id, assigned_by, scope_context, status, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
            RETURNING *`,
           [
             powerAdminUser.id,
             powerAdminRole.id,
             powerAdminUser.id, // Self-assigned during setup
-            'organization' as ScopeType,
-            organization.id,
+            JSON.stringify({
+              scopeType: ScopeType.ORGANIZATION,
+              scopeId: organization.id
+            }),
             'active'
           ]
         );

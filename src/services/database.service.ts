@@ -20,26 +20,16 @@ export class DatabaseService {
   };
 
   constructor() {
-    // this.pool = new Pool({
-    //   host: process.env.DB_HOST || 'localhost',
-    //   port: parseInt(process.env.DB_PORT || '5432'),
-    //   user: process.env.DB_USER || 'postgres',
-    //   password: process.env.DB_PASSWORD || 'postgres',
-    //   database: process.env.DB_NAME || 'direct_organizations',
-    //   ssl: process.env.DB_SSL === 'true',
-    //   max: 20,
-    //   idleTimeoutMillis: 30000,
-    //   connectionTimeoutMillis: 30000, // Increased to 30 seconds to handle connection timeouts
-    // });
     this.pool = new Pool({
-      host: 'localhost',
-      port: 5432,
-      user: 'postgres',
-      password: 'postgres',
-      database: 'direct_organizations',
+      host: process.env.DB_HOST || 'localhost',
+      port: parseInt(process.env.DB_PORT || '5432'),
+      user: process.env.DB_USER || 'postgres',
+      password: process.env.DB_PASSWORD || 'postgres',
+      database: process.env.DB_NAME || 'direct_organizations',
       ssl: process.env.DB_SSL === 'true',
-      connectionTimeoutMillis: 5000,
-      idleTimeoutMillis: 30000
+      max: 20,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 30000, // Increased to 30 seconds to handle connection timeouts
     });
   }
 
